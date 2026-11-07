@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -774,10 +775,8 @@ fun GboardKeyButton(
                     Brush.horizontalGradient(
                         listOf(Color(0xFF7B2FFE), Color(0xFF00C6FF))
                     )
-                } else if (isPressed) {
-                    bg.copy(alpha = 0.75f)
                 } else {
-                    bg
+                    SolidColor(if (isPressed) bg.copy(alpha = 0.75f) else bg)
                 }
             )
             .border(

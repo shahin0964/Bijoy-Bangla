@@ -353,6 +353,7 @@ class BijoyIME : InputMethodService(),
             EditorInfo.IME_ACTION_SEND -> "Send"
             EditorInfo.IME_ACTION_NEXT -> "Next"
             EditorInfo.IME_ACTION_DONE -> "Done"
+            else -> "return"
         }
     }
 

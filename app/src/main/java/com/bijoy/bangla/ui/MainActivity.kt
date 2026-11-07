@@ -1557,7 +1557,7 @@ fun HistorySubScreen(
 ) {
     val dbHelper = BijoyApp.historyDb
     var searchQuery by remember { mutableStateOf("") }
-    var historyItems by remember { mutableStateOf(dbHelper.getAllRecords(searchQuery)) }
+    var historyItems by remember { mutableStateOf<List<HistoryItem>>(dbHelper.getAllRecords(searchQuery)) }
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()) }
 
     Column(
@@ -1785,7 +1785,7 @@ fun OtaUpdateSubScreen(
                             onClick = {
                                 coroutineScope.launch {
                                     updateStatus = UpdateStatus.Checking
-                                    updateStatus = OtaUpdateManager.checkForUpdate(currentVersion)
+                                    updateStatus = OtaUpdateManager.checkForUpdates(context)
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -1808,13 +1808,13 @@ fun OtaUpdateSubScreen(
                             Text("Checking GitHub repository...", color = Color.White, fontSize = 13.sp)
                         }
                     }
-                    is UpdateStatus.NoUpdateAvailable -> {
+                    is UpdateStatus.UpToDate -> {
                         Text("You're on the latest version! (${status.currentVersion})", color = Color(0xFF00E676), fontSize = 13.sp)
                         Button(
                             onClick = {
                                 coroutineScope.launch {
                                     updateStatus = UpdateStatus.Checking
-                                    updateStatus = OtaUpdateManager.checkForUpdate(currentVersion)
+                                    updateStatus = OtaUpdateManager.checkForUpdates(context)
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -1835,19 +1835,19 @@ fun OtaUpdateSubScreen(
                                 is DownloadState.Idle -> {
                                     Button(
                                         onClick = {
-                                            val apkAsset = status.release.assets.firstOrNull { it.name.endsWith(".apk") }
-                                            if (apkAsset != null) {
-                                                coroutineScope.launch {
-                                                    OtaUpdateManager.downloadApk(
-                                                        context = context,
-                                                        downloadUrl = apkAsset.browserDownloadUrl,
-                                                        fileName = apkAsset.name
-                                                    ).collect { state ->
-                                                        downloadState = state
-                                                    }
+                                            coroutineScope.launch {
+                                                downloadState = DownloadState.Downloading(0, 0, 0)
+                                                val result = OtaUpdateManager.downloadApk(
+                                                    context = context,
+                                                    release = status.release
+                                                ) { percent, down, total ->
+                                                    downloadState = DownloadState.Downloading(percent, down, total)
                                                 }
-                                            } else {
-                                                Toast.makeText(context, "No APK asset found in release", Toast.LENGTH_SHORT).show()
+                                                result.onSuccess { apkFile ->
+                                                    downloadState = DownloadState.Completed(apkFile, status.release)
+                                                }.onFailure { err ->
+                                                    downloadState = DownloadState.Failed(err.message ?: "Download failed")
+                                                }
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth(),
@@ -1868,9 +1868,9 @@ fun OtaUpdateSubScreen(
                                         Text("Downloading... ${ds.progressPercent}%", color = Color.White, fontSize = 12.sp)
                                     }
                                 }
-                                is DownloadState.Success -> {
+                                is DownloadState.Completed -> {
                                     Button(
-                                        onClick = { OtaUpdateManager.installApk(context, ds.file) },
+                                        onClick = { OtaUpdateManager.installApk(context, ds.apkFile) },
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
                                         shape = RoundedCornerShape(10.dp)
@@ -1880,8 +1880,8 @@ fun OtaUpdateSubScreen(
                                         Text("Install APK Now", color = Color.White, fontWeight = FontWeight.Bold)
                                     }
                                 }
-                                is DownloadState.Error -> {
-                                    Text("Download failed: ${ds.message}", color = Color(0xFFFF5252), fontSize = 12.sp)
+                                is DownloadState.Failed -> {
+                                    Text("Download failed: ${ds.error}", color = Color(0xFFFF5252), fontSize = 12.sp)
                                 }
                             }
                         }

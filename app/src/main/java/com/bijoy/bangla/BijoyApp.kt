@@ -12,6 +12,7 @@ class BijoyApp : Application() {
             private set
         val prefs: PreferencesManager by lazy { PreferencesManager(instance) }
         val dbHelper: HistoryDbHelper by lazy { HistoryDbHelper(instance) }
+        val historyDb: HistoryDbHelper get() = dbHelper
         val chatManager: ChatContextManager by lazy { ChatContextManager(instance) }
     }
 
