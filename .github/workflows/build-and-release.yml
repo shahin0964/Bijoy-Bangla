@@ -1,4 +1,4 @@
-name: Build and Update Release APK
+name: Build and Release Beta APK
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build & Release APK
+    name: Build & Release Beta APK
     runs-on: ubuntu-latest
 
     steps:
@@ -34,8 +34,9 @@ jobs:
 
       - name: Compute Dynamic Version
         run: |
-          VERSION_CODE=${{ github.run_number }}
-          VERSION_NAME="1.0.${{ github.run_number }}"
+          RUN_NUM=${{ github.run_number }}
+          VERSION_CODE=$RUN_NUM
+          VERSION_NAME="1.0.${RUN_NUM}-beta"
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
@@ -60,11 +61,58 @@ jobs:
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease -PversionCode=$VERSION_CODE -PversionName=$VERSION_NAME
+      - name: Build Android Release APK
+        run: |
+          ./gradlew :app:assembleRelease -PversionCode=${{ env.VERSION_CODE }} -PversionName=${{ env.VERSION_NAME }} --no-daemon --stacktrace
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Prepare APK for Release
+        run: |
+          mkdir -p release-artifacts
+          APK_FILE=$(find app/build/outputs/apk/release -type f -name "*.apk" 2>/dev/null | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find . -type f -name "*.apk" 2>/dev/null | head -n 1)
+          fi
+          echo "Found APK: $APK_FILE"
+          if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+            cp "$APK_FILE" release-artifacts/BijoyBangla-latest.apk
+            cp "$APK_FILE" "release-artifacts/BijoyBangla-v${{ env.VERSION_NAME }}.apk"
+            cp "$APK_FILE" release-artifacts/BijoyBangla-beta.apk
+            echo "{\"versionCode\": ${{ env.VERSION_CODE }}, \"versionName\": \"${{ env.VERSION_NAME }}\", \"tagName\": \"v${{ env.VERSION_NAME }}\", \"name\": \"Bijoy Bangla v${{ env.VERSION_NAME }}\", \"body\": \"Automated beta release for Bijoy Bangla Keyboard.\", \"apkUrl\": \"https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION_NAME }}/BijoyBangla-latest.apk\"}" > release-artifacts/version.json
+            echo "Successfully prepared release artifacts"
+            ls -lh release-artifacts/
+          else
+            echo "::error::No APK file found in workspace after build!"
+            exit 1
+          fi
+
+      - name: Prepare Release Notes
+        run: |
+          echo "## 🇧🇩 Bijoy Bangla v${{ env.VERSION_NAME }}" > release_body.md
+          echo "✨ **আইফোন (iOS) ডিজাইনে পূর্ণাঙ্গ বাংলা কীবোর্ড**" >> release_body.md
+          echo "" >> release_body.md
+          echo "### 🚀 কী কী নতুন যুক্ত করা হয়েছে:" >> release_body.md
+          echo "* 📱 **iOS Keyboard Clone**: আইফোনের হুবহু কী-ক্যাপ, পপআপ বাবল প্রিভিউ, ক্লিক সাউন্ড এবং হ্যাপটিক্স।" >> release_body.md
+          echo "* 🧠 **Smart Chat Memory**: মেসেঞ্জার ও হোয়াটসঅ্যাপে নির্দিষ্ট চ্যাট অনুযায়ী ভাষা স্বয়ংক্রিয়ভাবে মনে রাখা।" >> release_body.md
+          echo "* ⌨️ **৪টি কীবোর্ড লেআউট**: ইংরেজি (English), অভ্র ফোনেটিক (Avro), বিজয় পিসি (Bijoy Classic), এবং সহজ বাংলা (Smart Mobile)।" >> release_body.md
+          echo "* 📋 **টাইপিং ও ক্লিপবোর্ড হিস্ট্রি**: টাইপ করা ডাটা ও ক্লিপবোর্ড হিস্ট্রি রেকর্ড ও প্রাইভেসি প্রটেকশন।" >> release_body.md
+          echo "* 🔄 **In-App OTA Updates**: অ্যাপের ভেতর থেকেই সরাসরি এক ক্লিকে আপডেট চেক ও ডাউনলোড করার ব্যবস্থা।" >> release_body.md
+          echo "" >> release_body.md
+          echo "### 📝 কমিট লগ (Changelog):" >> release_body.md
+          git log -n 5 --pretty=format:"* %s" >> release_body.md
+          echo "" >> release_body.md
+          echo "---" >> release_body.md
+          echo "**Version**: \`v${{ env.VERSION_NAME }}\` (Build #${{ env.VERSION_CODE }})" >> release_body.md
+          echo "**Commit**: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> release_body.md
+
+      - name: Update GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          name: bijoy-bangla-apk
-          path: app/build/outputs/apk/release/*.apk
+          tag: "v${{ env.VERSION_NAME }}"
+          commit: ${{ github.sha }}
+          name: "Bijoy Bangla v${{ env.VERSION_NAME }}"
+          bodyFile: "release_body.md"
+          artifacts: "release-artifacts/*"
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}

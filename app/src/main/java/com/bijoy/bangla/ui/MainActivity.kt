@@ -10,6 +10,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +35,11 @@ import com.bijoy.bangla.BijoyApp
 import com.bijoy.bangla.data.HistoryItem
 import com.bijoy.bangla.data.KeyboardTheme
 import com.bijoy.bangla.data.SavedChatLayout
+import com.bijoy.bangla.data.update.DownloadState
+import com.bijoy.bangla.data.update.OtaUpdateManager
+import com.bijoy.bangla.data.update.UpdateStatus
+import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -51,7 +57,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BijoyBanglaApp() {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) } // 0: Settings, 1: Chat Memory, 2: History
+    var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
@@ -109,12 +115,19 @@ fun BijoyBanglaApp() {
 @Composable
 fun SettingsScreen(context: Context) {
     val prefs = BijoyApp.prefs
+    val coroutineScope = rememberCoroutineScope()
+
     var theme by remember { mutableStateOf(prefs.theme) }
     var soundEnabled by remember { mutableStateOf(prefs.isSoundEnabled) }
     var vibrationEnabled by remember { mutableStateOf(prefs.isVibrationEnabled) }
     var popupEnabled by remember { mutableStateOf(prefs.isPopupEnabled) }
     var chatMemoryEnabled by remember { mutableStateOf(prefs.isSmartChatMemoryEnabled) }
     var testText by remember { mutableStateOf("") }
+
+    // OTA Update States
+    val currentVersion = remember { OtaUpdateManager.getCurrentVersion(context) }
+    var updateStatus by remember { mutableStateOf<UpdateStatus>(UpdateStatus.Idle) }
+    var downloadState by remember { mutableStateOf<DownloadState>(DownloadState.Idle) }
 
     val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
@@ -158,6 +171,237 @@ fun SettingsScreen(context: Context) {
                 ) {
                     val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                     context.startActivity(intent)
+                }
+            }
+        }
+
+        // --- In-App OTA Update Card ---
+        item {
+            IosGroupCard(title = "অ্যাপ আপডেট (GitHub Repository)") {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "বর্তমান সংস্করণ: v$currentVersion",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.Black
+                            )
+                            Text(
+                                text = "Repo: shahin0964/Bijoy-Bangla",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    updateStatus = UpdateStatus.Checking
+                                    downloadState = DownloadState.Idle
+                                    updateStatus = OtaUpdateManager.checkForUpdates(context)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = updateStatus !is UpdateStatus.Checking && downloadState !is DownloadState.Downloading
+                        ) {
+                            if (updateStatus is UpdateStatus.Checking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("চেক হচ্ছে...", fontSize = 12.sp)
+                            } else {
+                                Text("আপডেট চেক করুন", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    // Update Status Results
+                    when (val status = updateStatus) {
+                        is UpdateStatus.UpdateAvailable -> {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F2FF)),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.NewReleases,
+                                            contentDescription = null,
+                                            tint = Color(0xFF007AFF),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "নতুন আপডেট উপলব্ধ: ${status.release.tagName}",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF007AFF)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "রিলিজ নোট (What's New):",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.DarkGray
+                                    )
+                                    Text(
+                                        text = status.release.body,
+                                        fontSize = 13.sp,
+                                        color = Color.Black,
+                                        lineHeight = 18.sp,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Download Progress or Button
+                                    when (val ds = downloadState) {
+                                        is DownloadState.Idle -> {
+                                            Button(
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        downloadState = DownloadState.Downloading(0, 0, status.release.apkSize)
+                                                        val result = OtaUpdateManager.downloadApk(
+                                                            context = context,
+                                                            release = status.release,
+                                                            onProgress = { percent, downloaded, total ->
+                                                                downloadState = DownloadState.Downloading(percent, downloaded, total)
+                                                            }
+                                                        )
+                                                        result.onSuccess { file ->
+                                                            downloadState = DownloadState.Completed(file, status.release)
+                                                            OtaUpdateManager.installApk(context, file)
+                                                        }.onFailure { err ->
+                                                            downloadState = DownloadState.Failed(err.message ?: "ডাউনলোড ব্যর্থ হয়েছে")
+                                                        }
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759)),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("ইন-অ্যাপ ডাউনলোড ও আপডেট")
+                                            }
+                                        }
+                                        is DownloadState.Downloading -> {
+                                            Column(modifier = Modifier.fillMaxWidth()) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = "ডাউনলোড হচ্ছে... ${ds.progressPercent}%",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = Color(0xFF007AFF)
+                                                    )
+                                                    if (ds.totalBytes > 0) {
+                                                        val dlMb = "%.1f".format(ds.downloadedBytes / (1024.0 * 1024.0))
+                                                        val totMb = "%.1f".format(ds.totalBytes / (1024.0 * 1024.0))
+                                                        Text(
+                                                            text = "$dlMb MB / $totMb MB",
+                                                            fontSize = 11.sp,
+                                                            color = Color.Gray
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                LinearProgressIndicator(
+                                                    progress = { ds.progressPercent / 100f },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(8.dp)
+                                                        .clip(RoundedCornerShape(4.dp)),
+                                                    color = Color(0xFF007AFF)
+                                                )
+                                            }
+                                        }
+                                        is DownloadState.Completed -> {
+                                            Column(modifier = Modifier.fillMaxWidth()) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF34C759),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "✅ আপডেট ডাউনলোড সম্পূর্ণ হয়েছে!",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF34C759)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Button(
+                                                    onClick = {
+                                                        OtaUpdateManager.installApk(context, ds.apkFile)
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759)),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("এখনই ইনস্টল করুন (Install Now)")
+                                                }
+                                            }
+                                        }
+                                        is DownloadState.Failed -> {
+                                            Text(
+                                                text = "❌ ডাউনলোড ত্রুটি: ${ds.error}",
+                                                color = Color.Red,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        is UpdateStatus.UpToDate -> {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF34C759),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "আপনার কীবোর্ড সম্পূর্ণ আপ-টু-ডেট আছে (v$currentVersion)",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF288B46),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        is UpdateStatus.Error -> {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "ত্রুটি: ${status.message}",
+                                color = Color.Red,
+                                fontSize = 12.sp
+                            )
+                        }
+                        UpdateStatus.Idle, UpdateStatus.Checking -> {}
+                    }
                 }
             }
         }
@@ -256,7 +500,7 @@ fun SettingsScreen(context: Context) {
             }
         }
 
-        // --- Features ---
+        // --- Smart Chat Memory ---
         item {
             IosGroupCard(title = "স্মার্ট ফিচার") {
                 IosSwitchRow(
@@ -451,7 +695,6 @@ fun HistoryScreen(context: Context) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Search & Privacy Switch
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -646,7 +889,6 @@ fun HistoryRecordCard(
     }
 }
 
-// Grouped iOS Card Component
 @Composable
 fun IosGroupCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
