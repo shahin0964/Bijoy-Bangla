@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.bijoy.bangla.ui.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true"
+    android:isDefault="true">
+    <subtype
+        android:label="English (US)"
+        android:imeSubtypeLocale="en_US"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="অভ্র ফোনেটিক"
+        android:imeSubtypeLocale="bn_BD"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="বিজয় পিসি"
+        android:imeSubtypeLocale="bn_BD"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="সহজ বাংলা"
+        android:imeSubtypeLocale="bn_BD"
+        android:imeSubtypeMode="keyboard" />
+</input-method>

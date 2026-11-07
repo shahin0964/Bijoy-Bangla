@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Bijoy Bangla</string>
+    <string name="keyboard_name">বিজয় বাংলা কীবোর্ড</string>
+    <string name="accessibility_service_name">Bijoy Bangla Smart Chat Memory</string>
+    <string name="accessibility_description">আইফোনের মতো বিভিন্ন ব্যক্তির সাথে চ্যাটের ভাষা স্বয়ংক্রিয়ভাবে মনে রাখার জন্য এই পারমিশনটি ব্যবহার করা হয়।</string>
+</resources>

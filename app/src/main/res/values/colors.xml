@@ -1,0 +1,28 @@
+<resources>
+    <color name="primary">#007AFF</color>
+    <color name="primary_variant">#0056B3</color>
+    <color name="background_light">#F2F2F7</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="text_primary_light">#000000</color>
+    
+    <color name="background_dark">#000000</color>
+    <color name="surface_dark">#1C1C1E</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+    
+    <!-- iOS Keyboard Light Colors -->
+    <color name="ios_kb_bg_light">#D1D5DB</color>
+    <color name="ios_key_bg_light">#FFFFFF</color>
+    <color name="ios_key_shadow_light">#898A8D</color>
+    <color name="ios_key_special_light">#ACB3BA</color>
+    <color name="ios_key_text_light">#000000</color>
+    
+    <!-- iOS Keyboard Dark Colors -->
+    <color name="ios_kb_bg_dark">#18181A</color>
+    <color name="ios_key_bg_dark">#4A4A4C</color>
+    <color name="ios_key_shadow_dark">#1C1C1E</color>
+    <color name="ios_key_special_dark">#2C2C2E</color>
+    <color name="ios_key_text_dark">#FFFFFF</color>
+    
+    <color name="ios_blue">#007AFF</color>
+    <color name="ios_green">#34C759</color>
+</resources>
