@@ -11,8 +11,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.*
-import androidx.savedstate.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.ViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.ViewTreeSavedStateRegistryOwner
 import com.bijoy.bangla.BijoyApp
 import com.bijoy.bangla.engine.*
 import com.bijoy.bangla.ui.MainActivity
@@ -58,12 +67,16 @@ class BijoyIME : InputMethodService(),
     override fun onCreateInputView(): View {
         val decorView = window.window?.decorView
         decorView?.let {
-            it.setViewTreeLifecycleOwner(this)
-            it.setViewTreeViewModelStoreOwner(this)
-            it.setViewTreeSavedStateRegistryOwner(this)
+            ViewTreeLifecycleOwner.set(it, this)
+            ViewTreeViewModelStoreOwner.set(it, this)
+            ViewTreeSavedStateRegistryOwner.set(it, this)
         }
 
         return ComposeView(this).apply {
+            ViewTreeLifecycleOwner.set(this, this@BijoyIME)
+            ViewTreeViewModelStoreOwner.set(this, this@BijoyIME)
+            ViewTreeSavedStateRegistryOwner.set(this, this@BijoyIME)
+
             setContent {
                 KeyboardScreen(
                     currentLayout = currentLayoutState,

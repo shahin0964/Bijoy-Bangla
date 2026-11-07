@@ -3,7 +3,6 @@ package com.bijoy.bangla.ime
 import android.content.Context
 import android.media.AudioManager
 import android.os.Build
-import android.os.CombinedVibration
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -44,10 +43,10 @@ class FeedbackHelper(private val context: Context) {
                 vibrator?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(VibrationEffect.createOneShot(15, 120))
+                vibrator?.vibrate(VibrationEffect.createOneShot(15L, 120))
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(15)
+                vibrator?.vibrate(15L)
             }
         } catch (_: Exception) {
             view?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)

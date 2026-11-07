@@ -322,7 +322,7 @@ fun SettingsScreen(context: Context) {
                                                 }
                                                 Spacer(modifier = Modifier.height(6.dp))
                                                 LinearProgressIndicator(
-                                                    progress = { ds.progressPercent / 100f },
+                                                    progress = (ds.progressPercent / 100f).coerceIn(0f, 1f),
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .height(8.dp)
