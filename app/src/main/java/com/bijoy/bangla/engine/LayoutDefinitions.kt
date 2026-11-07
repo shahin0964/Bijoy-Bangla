@@ -7,6 +7,7 @@ enum class KeyIconType {
 data class KeyModel(
     val primaryText: String,
     val shiftedText: String = "",
+    val hintText: String = "",
     val isSpecial: Boolean = false,
     val widthWeight: Float = 1.0f,
     val iconType: KeyIconType = KeyIconType.NONE
@@ -14,9 +15,16 @@ data class KeyModel(
 
 object LayoutDefinitions {
 
-    // 1. English QWERTY
-    val englishRow1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p").map { KeyModel(it, it.uppercase()) }
-    val englishRow2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l").map { KeyModel(it, it.uppercase()) }
+    private val topRowNumbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+    private val topRowBanglaNumbers = listOf("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০")
+
+    // 1. English QWERTY with Gboard-style top row number hints
+    val englishRow1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p").mapIndexed { index, char ->
+        KeyModel(primaryText = char, shiftedText = char.uppercase(), hintText = topRowNumbers[index])
+    }
+    val englishRow2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l").map {
+        KeyModel(primaryText = it, shiftedText = it.uppercase())
+    }
     val englishRow3 = listOf(
         KeyModel("", isSpecial = true, widthWeight = 1.35f, iconType = KeyIconType.SHIFT),
         KeyModel("z", "Z"),
@@ -29,15 +37,13 @@ object LayoutDefinitions {
         KeyModel("", isSpecial = true, widthWeight = 1.35f, iconType = KeyIconType.BACKSPACE)
     )
 
-    // 2. Avro Phonetic (QWERTY letters with phonetic hints)
-    val avroRow1 = listOf(
-        KeyModel("q", "Q"), KeyModel("w", "W"), KeyModel("e", "E"), KeyModel("r", "R"), KeyModel("t", "T"),
-        KeyModel("y", "Y"), KeyModel("u", "U"), KeyModel("i", "I"), KeyModel("o", "O"), KeyModel("p", "P")
-    )
-    val avroRow2 = listOf(
-        KeyModel("a", "A"), KeyModel("s", "S"), KeyModel("d", "D"), KeyModel("f", "F"), KeyModel("g", "G"),
-        KeyModel("h", "H"), KeyModel("j", "J"), KeyModel("k", "K"), KeyModel("l", "L")
-    )
+    // 2. Avro Phonetic with top row number hints
+    val avroRow1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p").mapIndexed { index, char ->
+        KeyModel(primaryText = char, shiftedText = char.uppercase(), hintText = topRowBanglaNumbers[index])
+    }
+    val avroRow2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l").map {
+        KeyModel(primaryText = it, shiftedText = it.uppercase())
+    }
     val avroRow3 = listOf(
         KeyModel("", isSpecial = true, widthWeight = 1.35f, iconType = KeyIconType.SHIFT),
         KeyModel("z", "Z"), KeyModel("x", "X"), KeyModel("c", "C"), KeyModel("v", "V"),
@@ -45,10 +51,10 @@ object LayoutDefinitions {
         KeyModel("", isSpecial = true, widthWeight = 1.35f, iconType = KeyIconType.BACKSPACE)
     )
 
-    // 3. Bijoy PC Layout (Direct Bangla Letters according to Bijoy 52 Mapping)
+    // 3. Bijoy PC Layout (Direct Bangla Letters according to Bijoy 52 Mapping) with hints
     val bijoyRow1 = listOf(
-        KeyModel("ঙ", "ং"), KeyModel("য", "য়"), KeyModel("ড", "ঢ"), KeyModel("প", "ফ"), KeyModel("ট", "ঠ"),
-        KeyModel("চ", "ছ"), KeyModel("জ", "ঝ"), KeyModel("হ", "ঞ"), KeyModel("গ", "ঘ"), KeyModel("ড়", "ঢ়")
+        KeyModel("ঙ", "ং", "১"), KeyModel("য", "য়", "২"), KeyModel("ড", "ঢ", "৩"), KeyModel("প", "ফ", "৪"), KeyModel("ট", "ঠ", "৫"),
+        KeyModel("চ", "ছ", "৬"), KeyModel("জ", "ঝ", "৭"), KeyModel("হ", "ঞ", "৮"), KeyModel("গ", "ঘ", "৯"), KeyModel("ড়", "ঢ়", "০")
     )
     val bijoyRow2 = listOf(
         KeyModel("ৃ", "ঋ"), KeyModel("ু", "ূ"), KeyModel("ি", "ী"), KeyModel("া", "াঁ"), KeyModel("্", "।"),
@@ -61,10 +67,10 @@ object LayoutDefinitions {
         KeyModel("", isSpecial = true, widthWeight = 1.35f, iconType = KeyIconType.BACKSPACE)
     )
 
-    // 4. Smart Mobile Bangla Layout (Intuitive, Touch-Friendly)
+    // 4. Smart Mobile Bangla Layout
     val smartRow1 = listOf(
-        KeyModel("ক", "অ"), KeyModel("খ", "আ"), KeyModel("গ", "ই"), KeyModel("ঘ", "ঈ"), KeyModel("ঙ", "উ"),
-        KeyModel("চ", "ঊ"), KeyModel("ছ", "ঋ"), KeyModel("জ", "এ"), KeyModel("ঝ", "ঐ"), KeyModel("ঞ", "ও")
+        KeyModel("ক", "অ", "১"), KeyModel("খ", "আ", "২"), KeyModel("গ", "ই", "৩"), KeyModel("ঘ", "ঈ", "৪"), KeyModel("ঙ", "উ", "৫"),
+        KeyModel("চ", "ঊ", "৬"), KeyModel("ছ", "ঋ", "৭"), KeyModel("জ", "এ", "৮"), KeyModel("ঝ", "ঐ", "৯"), KeyModel("ঞ", "ও", "০")
     )
     val smartRow2 = listOf(
         KeyModel("ট", "া"), KeyModel("ঠ", "ি"), KeyModel("ড", "ী"), KeyModel("ঢ", "ু"), KeyModel("ণ", "ূ"),
@@ -79,8 +85,8 @@ object LayoutDefinitions {
     )
 
     // 5. English Symbols (123)
-    val symbolsEnRow1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0").map { KeyModel(it) }
-    val symbolsEnRow2 = listOf("-", "/", ":", ";", "(", ")", "$", "&", "@", "\"").map { KeyModel(it) }
+    val symbolsEnRow1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0").map { KeyModel(primaryText = it) }
+    val symbolsEnRow2 = listOf("-", "/", ":", ";", "(", ")", "$", "&", "@", "\"").map { KeyModel(primaryText = it) }
     val symbolsEnRow3 = listOf(
         KeyModel("#+=", isSpecial = true, widthWeight = 1.35f),
         KeyModel(".", ""), KeyModel(",", ""), KeyModel("?", ""), KeyModel("!", ""),
@@ -89,8 +95,8 @@ object LayoutDefinitions {
     )
 
     // 6. Bangla Symbols & Digits (১২৩)
-    val symbolsBnRow1 = listOf("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০").map { KeyModel(it) }
-    val symbolsBnRow2 = listOf("৳", "।", "‘", "’", "“", "”", "(", ")", "—", "-").map { KeyModel(it) }
+    val symbolsBnRow1 = listOf("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০").map { KeyModel(primaryText = it) }
+    val symbolsBnRow2 = listOf("৳", "।", "‘", "’", "“", "”", "(", ")", "—", "-").map { KeyModel(primaryText = it) }
     val symbolsBnRow3 = listOf(
         KeyModel("123", isSpecial = true, widthWeight = 1.35f),
         KeyModel(",", ""), KeyModel("?", ""), KeyModel("!", ""), KeyModel(":", ""),

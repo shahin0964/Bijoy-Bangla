@@ -114,6 +114,44 @@ class HistoryDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return list
     }
 
+    fun getRecentRecords(limit: Int = 5): List<HistoryItem> {
+        val list = mutableListOf<HistoryItem>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COL_TIMESTAMP DESC",
+            limit.toString()
+        )
+        cursor.use {
+            val idIndex = it.getColumnIndexOrThrow(COL_ID)
+            val contentIndex = it.getColumnIndexOrThrow(COL_CONTENT)
+            val pkgIndex = it.getColumnIndexOrThrow(COL_PACKAGE)
+            val contactIndex = it.getColumnIndexOrThrow(COL_CONTACT)
+            val layoutIndex = it.getColumnIndexOrThrow(COL_LAYOUT)
+            val timeIndex = it.getColumnIndexOrThrow(COL_TIMESTAMP)
+            val clipIndex = it.getColumnIndexOrThrow(COL_IS_CLIPBOARD)
+            while (it.moveToNext()) {
+                list.add(
+                    HistoryItem(
+                        id = it.getLong(idIndex),
+                        content = it.getString(contentIndex),
+                        packageName = it.getString(pkgIndex),
+                        contactName = it.getString(contactIndex),
+                        layoutUsed = it.getString(layoutIndex),
+                        timestamp = it.getLong(timeIndex),
+                        isClipboard = it.getInt(clipIndex) == 1
+                    )
+                )
+            }
+        }
+        return list
+    }
+
     fun deleteRecord(id: Long): Int {
         val db = writableDatabase
         return db.delete(TABLE_NAME, "$COL_ID = ?", arrayOf(id.toString()))

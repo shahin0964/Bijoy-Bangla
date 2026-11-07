@@ -4,9 +4,26 @@ import android.content.Context
 import android.content.SharedPreferences
 
 enum class KeyboardTheme(val id: String, val title: String) {
-    IOS_LIGHT("ios_light", "iOS Light"),
-    IOS_DARK("ios_dark", "iOS Dark"),
-    OLED_BLACK("oled_black", "OLED Black")
+    DYNAMIC("dynamic", "Dynamic"),
+    DARK_GLOW("dark_glow", "Dark Glow"),
+    NATURE("nature", "Nature"),
+    SUNSET("sunset", "Sunset"),
+    OCEAN("ocean", "Ocean"),
+    NEON("neon", "Neon"),
+    MINIMAL("minimal", "Minimal"),
+    LIGHT("light", "Light"),
+    GLASS("glass", "Glass"),
+    // Backward compatibility aliases
+    IOS_LIGHT("light", "Light"),
+    IOS_DARK("dark_glow", "Dark Glow"),
+    OLED_BLACK("minimal", "Minimal");
+
+    companion object {
+        fun fromId(id: String?): KeyboardTheme {
+            return values().firstOrNull { it.id.equals(id, ignoreCase = true) || it.name.equals(id, ignoreCase = true) }
+                ?: DYNAMIC
+        }
+    }
 }
 
 class PreferencesManager(context: Context) {
@@ -24,17 +41,24 @@ class PreferencesManager(context: Context) {
         private const val KEY_HISTORY_ENABLED = "history_logging_enabled"
         private const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period"
         private const val KEY_AUTO_CAPITALIZATION = "auto_capitalization"
+        private const val KEY_SHOW_NUMBER_ROW = "show_number_row"
+        private const val KEY_ONE_HAND_MODE = "one_hand_mode"
+        private const val KEY_ONE_HAND_SIDE = "one_hand_side"
+        private const val KEY_KEY_SIZE = "key_size"
+        private const val KEY_AUTO_CORRECTION = "auto_correction"
+        private const val KEY_SUGGEST_NEXT_WORD = "suggest_next_word"
+        private const val KEY_EMOJI_PANEL = "emoji_panel"
+        private const val KEY_CLIPBOARD = "clipboard_enabled"
+        private const val KEY_THEME_TRANSPARENCY = "theme_transparency"
+        private const val KEY_BLUR_EFFECT = "blur_effect"
     }
 
     var theme: KeyboardTheme
-        get() {
-            val id = prefs.getString(KEY_THEME, KeyboardTheme.IOS_LIGHT.id)
-            return KeyboardTheme.values().firstOrNull { it.id == id } ?: KeyboardTheme.IOS_LIGHT
-        }
+        get() = KeyboardTheme.fromId(prefs.getString(KEY_THEME, KeyboardTheme.DYNAMIC.id))
         set(value) = prefs.edit().putString(KEY_THEME, value.id).apply()
 
     var isSoundEnabled: Boolean
-        get() = prefs.getBoolean(KEY_SOUND_ENABLED, true)
+        get() = prefs.getBoolean(KEY_SOUND_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_SOUND_ENABLED, value).apply()
 
     var soundVolume: Float
@@ -68,4 +92,64 @@ class PreferencesManager(context: Context) {
     var isAutoCapitalizationEnabled: Boolean
         get() = prefs.getBoolean(KEY_AUTO_CAPITALIZATION, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_CAPITALIZATION, value).apply()
+
+    var isShowNumberRow: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, false)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_NUMBER_ROW, value).apply()
+
+    var isOneHandMode: Boolean
+        get() = prefs.getBoolean(KEY_ONE_HAND_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONE_HAND_MODE, value).apply()
+
+    var oneHandSide: String
+        get() = prefs.getString(KEY_ONE_HAND_SIDE, "RIGHT") ?: "RIGHT"
+        set(value) = prefs.edit().putString(KEY_ONE_HAND_SIDE, value).apply()
+
+    var keySize: String
+        get() = prefs.getString(KEY_KEY_SIZE, "Normal") ?: "Normal"
+        set(value) = prefs.edit().putString(KEY_KEY_SIZE, value).apply()
+
+    var isAutoCorrectionEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_CORRECTION, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_CORRECTION, value).apply()
+
+    var isSuggestNextWordEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SUGGEST_NEXT_WORD, true)
+        set(value) = prefs.edit().putBoolean(KEY_SUGGEST_NEXT_WORD, value).apply()
+
+    var isEmojiPanelEnabled: Boolean
+        get() = prefs.getBoolean(KEY_EMOJI_PANEL, true)
+        set(value) = prefs.edit().putBoolean(KEY_EMOJI_PANEL, value).apply()
+
+    var isClipboardEnabled: Boolean
+        get() = prefs.getBoolean(KEY_CLIPBOARD, true)
+        set(value) = prefs.edit().putBoolean(KEY_CLIPBOARD, value).apply()
+
+    var themeTransparency: Float
+        get() = prefs.getFloat(KEY_THEME_TRANSPARENCY, 0.80f)
+        set(value) = prefs.edit().putFloat(KEY_THEME_TRANSPARENCY, value).apply()
+
+    var isBlurEffectEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BLUR_EFFECT, true)
+        set(value) = prefs.edit().putBoolean(KEY_BLUR_EFFECT, value).apply()
+
+    fun resetToDefaults() {
+        prefs.edit().clear().apply()
+        theme = KeyboardTheme.DYNAMIC
+        isPopupEnabled = true
+        isVibrationEnabled = true
+        isSoundEnabled = false
+        isShowNumberRow = false
+        isOneHandMode = false
+        keySize = "Normal"
+        isAutoCorrectionEnabled = true
+        isSuggestNextWordEnabled = true
+        isAutoCapitalizationEnabled = true
+        isEmojiPanelEnabled = true
+        isClipboardEnabled = true
+        isSmartChatMemoryEnabled = true
+        isHistoryEnabled = true
+        themeTransparency = 0.80f
+        isBlurEffectEnabled = true
+    }
 }

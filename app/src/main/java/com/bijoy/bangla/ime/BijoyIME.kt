@@ -67,13 +67,17 @@ class BijoyIME : InputMethodService(),
     }
 
     override fun onCreateInputView(): View {
-        window.window?.decorView?.let { decor ->
-            decor.setViewTreeLifecycleOwner(this)
-            decor.setViewTreeViewModelStoreOwner(this)
-            decor.setViewTreeSavedStateRegistryOwner(this)
+        window.window?.let { win ->
+            win.addFlags(android.view.WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
+            win.decorView.let { decor ->
+                decor.setViewTreeLifecycleOwner(this)
+                decor.setViewTreeViewModelStoreOwner(this)
+                decor.setViewTreeSavedStateRegistryOwner(this)
+            }
         }
 
         return ComposeView(this).apply {
+            setViewCompositionStrategy(androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this@BijoyIME.lifecycle))
             setViewTreeLifecycleOwner(this@BijoyIME)
             setViewTreeViewModelStoreOwner(this@BijoyIME)
             setViewTreeSavedStateRegistryOwner(this@BijoyIME)
@@ -91,7 +95,8 @@ class BijoyIME : InputMethodService(),
                     onCandidateSelected = { candidate -> commitAvroCandidate(candidate) },
                     onLayoutChanged = { layout -> switchLayout(layout) },
                     onClipboardPaste = { pasteClipboard() },
-                    onOpenSettings = { openSettings() }
+                    onOpenSettings = { openSettings() },
+                    onVoiceInput = { triggerVoiceInput() }
                 )
             }
         }
@@ -348,7 +353,18 @@ class BijoyIME : InputMethodService(),
             EditorInfo.IME_ACTION_SEND -> "Send"
             EditorInfo.IME_ACTION_NEXT -> "Next"
             EditorInfo.IME_ACTION_DONE -> "Done"
-            else -> "return"
+        }
+    }
+
+    private fun triggerVoiceInput() {
+        try {
+            val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(this, "Voice typing service not available", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 }
