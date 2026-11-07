@@ -16,13 +16,15 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.ViewTreeLifecycleOwner
-import androidx.lifecycle.ViewTreeViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.bijoy.bangla.BijoyApp
+import com.bijoy.bangla.data.ChatContextManager
+import com.bijoy.bangla.data.HistoryDbHelper
 import com.bijoy.bangla.engine.*
 import com.bijoy.bangla.ui.MainActivity
 
@@ -65,17 +67,16 @@ class BijoyIME : InputMethodService(),
     }
 
     override fun onCreateInputView(): View {
-        val decorView = window.window?.decorView
-        decorView?.let {
-            ViewTreeLifecycleOwner.set(it, this)
-            ViewTreeViewModelStoreOwner.set(it, this)
-            ViewTreeSavedStateRegistryOwner.set(it, this)
+        window.window?.decorView?.let { decor ->
+            decor.setViewTreeLifecycleOwner(this)
+            decor.setViewTreeViewModelStoreOwner(this)
+            decor.setViewTreeSavedStateRegistryOwner(this)
         }
 
         return ComposeView(this).apply {
-            ViewTreeLifecycleOwner.set(this, this@BijoyIME)
-            ViewTreeViewModelStoreOwner.set(this, this@BijoyIME)
-            ViewTreeSavedStateRegistryOwner.set(this, this@BijoyIME)
+            setViewTreeLifecycleOwner(this@BijoyIME)
+            setViewTreeViewModelStoreOwner(this@BijoyIME)
+            setViewTreeSavedStateRegistryOwner(this@BijoyIME)
 
             setContent {
                 KeyboardScreen(
@@ -292,10 +293,11 @@ class BijoyIME : InputMethodService(),
                 currentInputConnection?.commitText(text, 1)
                 typedSentenceBuffer.append(text)
                 // Save to history as clipboard item
+                val contact = ChatContextManager.currentContact.takeIf { it.isNotBlank() }
                 BijoyApp.dbHelper.insertRecord(
                     content = text,
                     packageName = currentPackageName,
-                    contactName = ChatContextManager.currentContact.ifBlank { null },
+                    contactName = contact,
                     layoutUsed = currentLayoutState.shortLabel,
                     isClipboard = true
                 )
@@ -314,10 +316,11 @@ class BijoyIME : InputMethodService(),
             } ?: false
 
             if (!isPassword) {
+                val contact = ChatContextManager.currentContact.takeIf { it.isNotBlank() }
                 BijoyApp.dbHelper.insertRecord(
                     content = content,
                     packageName = currentPackageName,
-                    contactName = ChatContextManager.currentContact.ifBlank { null },
+                    contactName = contact,
                     layoutUsed = currentLayoutState.shortLabel,
                     isClipboard = false
                 )
